@@ -12,23 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Trace} from '../../public/trace';
-import {App} from '../../public/app';
-import {MetricVisualisation} from '../../public/plugin';
-import {PerfettoPlugin} from '../../public/plugin';
-import {McpServer} from '@modelcontextprotocol/sdk/server/mcp';
-import {Client} from '@modelcontextprotocol/sdk/client/index';
-import {InMemoryTransport} from '@modelcontextprotocol/sdk/inmemory';
-import {GoogleGenAI} from '@google/genai';
-import {registerTools} from './tracetools';
-import {z} from 'zod';
-import {Setting} from 'src/public/settings';
-import {registerCommands} from './commands';
-
+import { Trace } from '../../public/trace';
+import { App } from '../../public/app';
+import { MetricVisualisation } from '../../public/plugin';
+import { PerfettoPlugin } from '../../public/plugin';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inmemory';
+import { GoogleGenAI } from '@google/genai';
+import { registerTraceTools } from './tracetools';
+import { z } from 'zod';
+import { Setting } from 'src/public/settings';
+import { registerCommands } from './commands';
+import { ChatPage } from './chat_page';
+import m from 'mithril';
 export default class PerfettoMcpPlugin implements PerfettoPlugin {
   static readonly id = 'com.google.PerfettoMcp';
 
   static tokenSetting: Setting<string>;
+
+  private prompt = '';
 
   static onActivate(app: App): void {
     PerfettoMcpPlugin.tokenSetting = app.settings.register({
@@ -47,7 +50,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       version: '1.0.0',
     });
 
-    registerTools(mcpServer, trace.engine);
+    registerTraceTools(mcpServer, trace.engine);
 
     console.log('Server started!');
 
@@ -64,9 +67,30 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       mcpServer.server.connect(serverTransport),
     ]);
 
-    const ai = new GoogleGenAI({apiKey: PerfettoMcpPlugin.tokenSetting.get()});
+    const ai = new GoogleGenAI({ apiKey: PerfettoMcpPlugin.tokenSetting.get() });
 
     registerCommands(ai, client, trace);
+
+    trace.pages.registerPage({
+      route: '/aichat',
+      render: () => {
+        return m(ChatPage, {
+          trace,
+          prompt: '',
+          setPrompt: (prompt) => {
+            this.prompt = prompt;
+            console.log('Prompt set to:', this.prompt);
+          },
+        });
+      },
+    });
+    trace.sidebar.addMenuItem({
+      section: 'current_trace',
+      text: 'AI Chat',
+      href: '#!/aichat',
+      icon: 'smart_toy',
+      sortOrder: 10,
+    });
   }
 
   static metricVisualisations(): MetricVisualisation[] {

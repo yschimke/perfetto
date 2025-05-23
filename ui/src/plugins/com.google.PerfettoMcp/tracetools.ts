@@ -3,7 +3,7 @@ import {Engine} from 'src/trace_processor/engine';
 import {z} from 'zod';
 import {runQueryForMcp} from './query';
 
-export function registerTools(server: McpServer, engine: Engine) {
+export function registerTraceTools(server: McpServer, engine: Engine) {
   server.tool(
     'execute-perfetto-trace-query',
     `
