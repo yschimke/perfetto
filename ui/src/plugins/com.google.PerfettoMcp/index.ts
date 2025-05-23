@@ -20,7 +20,7 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp';
 import {Client} from '@modelcontextprotocol/sdk/client/index';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inmemory';
 import {GoogleGenAI} from '@google/genai';
-import {registerTools} from './tools';
+import {registerTools} from './tracetools';
 import {z} from 'zod';
 import {Setting} from 'src/public/settings';
 import {registerCommands} from './commands';
