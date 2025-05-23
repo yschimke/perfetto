@@ -18,7 +18,7 @@ import {MetricVisualisation} from '../../public/plugin';
 import {PerfettoPlugin} from '../../public/plugin';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp';
 import {Client} from '@modelcontextprotocol/sdk/client/index';
-import {InMemoryTransport} from '@modelcontextprotocol/sdk/InMemory';
+import {InMemoryTransport} from '@modelcontextprotocol/sdk/inmemory';
 import {GoogleGenAI} from '@google/genai';
 import {registerTools} from './tools';
 import {z} from 'zod';
