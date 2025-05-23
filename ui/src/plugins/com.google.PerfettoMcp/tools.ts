@@ -1,4 +1,4 @@
-import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import {McpServer} from '@modelcontextprotocol/sdk/server/mcp';
 import {Engine} from 'src/trace_processor/engine';
 import {z} from 'zod';
 import {runQueryForMcp} from './query';

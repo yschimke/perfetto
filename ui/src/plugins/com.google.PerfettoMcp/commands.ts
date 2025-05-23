@@ -1,6 +1,6 @@
 import {GoogleGenAI, mcpToTool} from '@google/genai';
 import {Trace} from '../../public/trace';
-import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {Client} from '@modelcontextprotocol/sdk/client/index';
 
 export function registerCommands(
   ai: GoogleGenAI,
