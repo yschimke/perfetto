@@ -1,5 +1,5 @@
 import {Engine} from '../../trace_processor/engine';
-import {QueryResult} from 'src/trace_processor/query_result';
+import {QueryResult, SqlValue} from 'src/trace_processor/query_result';
 
 export async function runQueryForMcp(
   engine: Engine,
@@ -11,11 +11,9 @@ export async function runQueryForMcp(
 
 export async function resultToJson(result: QueryResult): Promise<string> {
   const columns = result.columns();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows: any[] = [];
+  const rows: unknown[] = [];
   for (const it = result.iter({}); it.valid(); it.next()) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row: any = {};
+    const row: { [key: string]: SqlValue } = {};
     for (const name of columns) {
       let value = it.get(name);
       if (typeof value === 'bigint') {
