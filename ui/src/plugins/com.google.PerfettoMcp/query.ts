@@ -1,28 +1,29 @@
 import {Engine} from '../../trace_processor/engine';
-import { QueryResult } from 'src/trace_processor/query_result';
+import {QueryResult} from 'src/trace_processor/query_result';
 
 export async function runQueryForMcp(
-  engine: Engine, query: string,
+  engine: Engine,
+  query: string,
 ): Promise<string> {
-    const result = await engine.query(query, "PerfettoMcp");
-    return resultToJson(result);
+  const result = await engine.query(query, 'PerfettoMcp');
+  return resultToJson(result);
 }
 
-export async function resultToJson(
-  result: QueryResult,
-): Promise<string> {
-      const columns = result.columns();
-      const rows: any[] = [];
-      for (const it = result.iter({}); it.valid(); it.next()) {
-        const row: any = {};
-        for (const name of columns) {
-          let value = it.get(name);
-          if (typeof value === 'bigint') {
-            value = Number(value);
-          }
-          row[name] = value;
-        }
-        rows.push(row);
+export async function resultToJson(result: QueryResult): Promise<string> {
+  const columns = result.columns();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = [];
+  for (const it = result.iter({}); it.valid(); it.next()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row: any = {};
+    for (const name of columns) {
+      let value = it.get(name);
+      if (typeof value === 'bigint') {
+        value = Number(value);
       }
-      return JSON.stringify(rows);
+      row[name] = value;
+    }
+    rows.push(row);
+  }
+  return JSON.stringify(rows);
 }

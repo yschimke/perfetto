@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Trace } from '../../public/trace';
-import { App } from '../../public/app';
-import { MetricVisualisation } from '../../public/plugin';
-import { PerfettoPlugin } from '../../public/plugin';
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/InMemory.js";
-import { GoogleGenAI } from "@google/genai";
-import { registerTools } from './tools';
-import { z } from "zod";
-import { Setting } from 'src/public/settings';
-import { registerCommands } from './commands';
+import {Trace} from '../../public/trace';
+import {App} from '../../public/app';
+import {MetricVisualisation} from '../../public/plugin';
+import {PerfettoPlugin} from '../../public/plugin';
+import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {InMemoryTransport} from '@modelcontextprotocol/sdk/InMemory.js';
+import {GoogleGenAI} from '@google/genai';
+import {registerTools} from './tools';
+import {z} from 'zod';
+import {Setting} from 'src/public/settings';
+import {registerCommands} from './commands';
 
 export default class PerfettoMcpPlugin implements PerfettoPlugin {
   static readonly id = 'com.google.PerfettoMcp';
@@ -36,15 +36,15 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       name: 'Gemini Token',
       description: 'Gemini API Token.',
       schema: z.string(),
-      defaultValue: "",
+      defaultValue: '',
     });
   }
 
   async onTraceLoad(trace: Trace): Promise<void> {
     console.log('PerfettoMcpPlugin onTraceLoad');
     const mcpServer = new McpServer({
-      name: "PerfettoMcp",
-      version: "1.0.0"
+      name: 'PerfettoMcp',
+      version: '1.0.0',
     });
 
     registerTools(mcpServer, trace.engine);
@@ -52,18 +52,19 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     console.log('Server started!');
 
     const client = new Client({
-      name: "PerfettoMcpClient",
-      version: "1.0",
+      name: 'PerfettoMcpClient',
+      version: '1.0',
     });
 
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
 
     await Promise.all([
       client.connect(clientTransport),
       mcpServer.server.connect(serverTransport),
     ]);
 
-    const ai = new GoogleGenAI({ apiKey: PerfettoMcpPlugin.tokenSetting.get() });
+    const ai = new GoogleGenAI({apiKey: PerfettoMcpPlugin.tokenSetting.get()});
 
     registerCommands(ai, client, trace);
   }
@@ -72,4 +73,3 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     return [];
   }
 }
-
