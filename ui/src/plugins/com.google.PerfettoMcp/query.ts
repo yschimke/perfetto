@@ -13,7 +13,7 @@ export async function resultToJson(result: QueryResult): Promise<string> {
   const columns = result.columns();
   const rows: unknown[] = [];
   for (const it = result.iter({}); it.valid(); it.next()) {
-    const row: { [key: string]: SqlValue } = {};
+    const row: {[key: string]: SqlValue} = {};
     for (const name of columns) {
       let value = it.get(name);
       if (typeof value === 'bigint') {
