@@ -12,6 +12,8 @@ export function registerUiTools(server: McpServer, ctxt: Trace) {
       viewName: z.string(),
     },
     async ({ query, viewName }) => {
+      console.log('show-perfetto-sql-view', query, viewName);
+
       addQueryResultsTab(ctxt, {
         query: query,
         title: viewName,

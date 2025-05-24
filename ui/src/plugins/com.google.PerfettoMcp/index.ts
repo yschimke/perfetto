@@ -16,10 +16,10 @@ import { Trace } from '../../public/trace';
 import { App } from '../../public/app';
 import { MetricVisualisation } from '../../public/plugin';
 import { PerfettoPlugin } from '../../public/plugin';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { Client } from '@modelcontextprotocol/sdk/client/index';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inmemory';
-import { GoogleGenAI } from '@google/genai';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { GoogleGenAI, mcpToTool } from '@google/genai';
 import { registerTraceTools } from './tracetools';
 import { z } from 'zod';
 import { Setting } from 'src/public/settings';
@@ -32,6 +32,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
   static tokenSetting: Setting<string>;
 
   private prompt = '';
+  private output = '';
 
   static onActivate(app: App): void {
     PerfettoMcpPlugin.tokenSetting = app.settings.register({
@@ -76,11 +77,27 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       render: () => {
         return m(ChatPage, {
           trace,
-          prompt: '',
-          setPrompt: (prompt) => {
-            this.prompt = prompt;
-            console.log('Prompt set to:', this.prompt);
+          prompt: this.prompt,
+          setPrompt: async (prompt) => {
+            this.prompt = '';
+            console.log('Prompt executed:', prompt);
+
+            ai.models.generateContent({
+              model: 'gemini-2.5-pro-preview-05-06',
+              contents: prompt,
+              config: {
+                tools: [mcpToTool(client)],
+              },
+            }).then((response) => {
+              console.log('Response:', response);
+              console.log('Text:', response.text);
+              // TODO handle this correctly with async
+              this.output = response.text ?? 'No response';
+            }).catch((error) => {
+              console.error('Error generating content:', error);
+            });
           },
+          output: this.output,
         });
       },
     });

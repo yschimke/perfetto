@@ -21,6 +21,7 @@ export interface ChatPageAttrs {
   readonly trace: Trace;
   readonly prompt: string;
   readonly setPrompt: (spec: string) => void;
+  readonly output: string;
 }
 
 export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
@@ -38,6 +39,9 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
         onExecute(text) {
           attrs.setPrompt(text);
         },
+      }),
+      m(Editor, {
+        initialText: attrs.output,
       }),
     );
   }
