@@ -85,7 +85,6 @@ FROM
 WHERE 
     type in ('table', 'view') 
     AND name NOT LIKE 'sqlite_%'
-    AND name NOT LIKE '\_%' ESCAPE '\'
 `,
       );
       return {
@@ -101,9 +100,6 @@ WHERE
         
         This is relevant because when a trace file includes a macrobenchmark run (a slice called 'measureBlock') 
         then the user is probably interested in the target app and the specific range of time for that 'measureBlock'.
-        
-        So a 'measureBlock' in the app 'com.google.android.horologist.mediasample.benchmark', would usually be testing
-        against an app called 'com.google.android.horologist.mediasample'.
 
         If it's not in the android processes in the trace then ask the user to provide the name of the target process.
         `,
@@ -112,14 +108,24 @@ WHERE
       const data = await runQueryForMcp(
         engine,
         `
-SELECT 
-    name, type
-FROM 
-    sqlite_schema
-WHERE 
-    type in ('table', 'view') 
-    AND name NOT LIKE 'sqlite_%'
-    AND name NOT LIKE '\_%' ESCAPE '\'
+        SELECT
+          s.name AS slice_name,
+          s.ts,
+          s.dur,
+          t.name AS thread_name,
+          p.name AS process_name
+        FROM
+          slice s
+        JOIN
+          thread_track tt ON s.track_id = tt.id
+        JOIN
+          thread t ON tt.utid = t.utid
+        JOIN
+          process p ON t.upid = p.upid
+        WHERE
+          s.name = 'measureBlock'
+        ORDER BY
+          s.ts
 `,
       );
       return {
