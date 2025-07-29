@@ -35,13 +35,13 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     return m(
       '.page.chat-page',
       m(Editor, {
-        initialText: attrs.prompt,
+        text: attrs.prompt,
         onExecute(text) {
           attrs.setPrompt(text);
         },
       }),
       m(Editor, {
-        initialText: attrs.output,
+        text: attrs.output,
       }),
     );
   }
