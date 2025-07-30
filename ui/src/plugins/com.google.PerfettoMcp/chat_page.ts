@@ -13,8 +13,7 @@
 // limitations under the License.
 
 import m from 'mithril';
-import { GoogleGenAI, mcpToTool } from '@google/genai';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { GoogleGenAI, CachedContent } from '@google/genai';
 import { Trace } from '../../public/trace';
 import { TextInput } from '../../widgets/text_input';
 
@@ -24,11 +23,16 @@ interface ChatMessage {
   text: string;
 }
 
+interface ModelParams {
+  model: string,
+  ai: GoogleGenAI,
+  cache: CachedContent
+}
+
 // Interface for the component's attributes/properties
 export interface ChatPageAttrs {
   readonly trace: Trace;
-  readonly ai: GoogleGenAI;
-  readonly client: Client;
+  readonly modelParams: ModelParams,
 }
 
 export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
@@ -38,15 +42,17 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   private isLoading: boolean;
   // The history needs to be in a specific format for the Gemini API
   private chatHistory: { role: string; parts: { text: string }[] }[];
-  
+
   // Services passed in through attributes
   private readonly ai: GoogleGenAI;
-  private readonly client: Client;
+  private readonly model: string;
+  private readonly cache: CachedContent;
 
-  constructor({attrs}: m.CVnode<ChatPageAttrs>) {
-    this.ai = attrs.ai;
-    this.client = attrs.client;
-    
+  constructor({ attrs }: m.CVnode<ChatPageAttrs>) {
+    this.model = attrs.modelParams.model;
+    this.ai = attrs.modelParams.ai;
+    this.cache = attrs.modelParams.cache;
+
     // Initialize state
     this.userInput = '';
     this.isLoading = false;
@@ -60,7 +66,7 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   // Use async/await for cleaner asynchronous logic
   sendMessage = async () => {
     const trimmedInput = this.userInput.trim();
-    
+
     // Prevent sending empty messages or sending while a request is in flight
     if (trimmedInput === '' || this.isLoading) return;
 
@@ -76,15 +82,15 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
 
       // The generateContent method expects an object, not a JSON string for contents.
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-pro-preview-05-06',
+        model: this.model,
         contents: payload.contents, // Pass the array directly
         config: {
-          tools: [mcpToTool(this.client)],
+          cachedContent: this.cache.name
         },
       });
 
       const responseText = response.text;
-      
+
       if (responseText) {
         // --- State Update 2: Show AI's response ---
         this.messages.push({ role: 'ai', text: responseText });
@@ -112,7 +118,7 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
         // Map through messages and apply a class based on the role for styling
         this.messages.map(msg => {
           return m(`.message-wrapper.${msg.role}`,
-            m('b.role-label', msg.role === 'ai' ? 'AI:' : 'You:'),
+            m('b.role-label', msg.role === 'ai' ? 'AI:' : msg.role === 'error' ? 'Error:' : 'You:'),
             m('span.message-text', msg.text)
           );
         })
