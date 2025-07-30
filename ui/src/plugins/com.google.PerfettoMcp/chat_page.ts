@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import m from 'mithril';
-import { GoogleGenAI, CachedContent } from '@google/genai';
+import { Chat } from '@google/genai';
 import { Trace } from '../../public/trace';
 import { TextInput } from '../../widgets/text_input';
 
@@ -23,16 +23,10 @@ interface ChatMessage {
   text: string;
 }
 
-interface ModelParams {
-  model: string,
-  ai: GoogleGenAI,
-  cache: CachedContent
-}
-
 // Interface for the component's attributes/properties
 export interface ChatPageAttrs {
   readonly trace: Trace;
-  readonly modelParams: ModelParams,
+  readonly chat: Chat,
 }
 
 export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
@@ -40,23 +34,16 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   private messages: ChatMessage[];
   private userInput: string;
   private isLoading: boolean;
-  // The history needs to be in a specific format for the Gemini API
-  private chatHistory: { role: string; parts: { text: string }[] }[];
 
   // Services passed in through attributes
-  private readonly ai: GoogleGenAI;
-  private readonly model: string;
-  private readonly cache: CachedContent;
+  private readonly chat: Chat;
 
   constructor({ attrs }: m.CVnode<ChatPageAttrs>) {
-    this.model = attrs.modelParams.model;
-    this.ai = attrs.modelParams.ai;
-    this.cache = attrs.modelParams.cache;
+    this.chat = attrs.chat;
 
     // Initialize state
     this.userInput = '';
     this.isLoading = false;
-    this.chatHistory = [];
     this.messages = [{
       role: 'ai',
       text: 'Hello! I am your friendly AI assistant. How can I help you today?'
@@ -72,21 +59,13 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
 
     // --- State Update 1: Show user's message immediately ---
     this.messages.push({ role: 'user', text: trimmedInput });
-    this.chatHistory.push({ role: 'user', parts: [{ text: trimmedInput }] });
     this.isLoading = true;
     this.userInput = ''; // Clear the input field
     m.redraw(); // Manually trigger a redraw to show the user's message and loading state
 
     try {
-      const payload = { contents: this.chatHistory };
-
-      // The generateContent method expects an object, not a JSON string for contents.
-      const response = await this.ai.models.generateContent({
-        model: this.model,
-        contents: payload.contents, // Pass the array directly
-        config: {
-          cachedContent: this.cache.name
-        },
+      const response = await this.chat.sendMessage({
+        message: trimmedInput
       });
 
       const responseText = response.text;
@@ -94,7 +73,6 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
       if (responseText) {
         // --- State Update 2: Show AI's response ---
         this.messages.push({ role: 'ai', text: responseText });
-        this.chatHistory.push({ role: 'model', parts: [{ text: responseText }] });
       } else {
         // Handle cases where the response might be empty
         this.messages.push({ role: 'error', text: 'Received an empty response from the AI.' });

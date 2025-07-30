@@ -134,11 +134,12 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     })
     console.log("Cache created:", cache);
 
-    var modelParams = {
+    var chat = await ai.chats.create({
       model: model,
-      ai: ai,
-      cache: cache
-    }
+      config: {
+        cachedContent: cache.name,
+      }
+    })
 
     registerCommands(ai, client, trace);
 
@@ -147,7 +148,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       render: () => {
         return m(ChatPage, {
           trace,
-          modelParams,
+          chat,
         });
       },
     });
