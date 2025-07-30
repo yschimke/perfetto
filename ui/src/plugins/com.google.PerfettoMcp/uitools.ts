@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { addQueryResultsTab } from 'src/components/query_table/query_result_tab';
 import { Trace } from 'src/public/trace';
