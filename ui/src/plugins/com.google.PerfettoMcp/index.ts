@@ -45,7 +45,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     PerfettoMcpPlugin.promptSetting = app.settings.register({
       id: `${app.pluginId}#PromptSetting`,
       name: 'Gemini Prompt',
-      description: 'Upload a .txt file containing the initial Gemini prompt.',
+      description: 'Upload a .txt file containing the initial Gemini prompt. (minimum of 2048 tokens)',
       schema: z.string(),
       defaultValue: "",
       render: (setting) => {
