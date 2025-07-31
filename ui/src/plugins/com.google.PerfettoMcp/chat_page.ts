@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import m from 'mithril';
-import { CallableTool, Chat, FunctionCall, GenerateContentResponse } from '@google/genai';
+import { Chat, FunctionCall, GenerateContentResponse } from '@google/genai';
 import { Trace } from '../../public/trace';
 import { TextInput } from '../../widgets/text_input';
 
@@ -27,7 +27,6 @@ interface ChatMessage {
 export interface ChatPageAttrs {
   readonly trace: Trace;
   readonly chat: Chat;
-  readonly tool: CallableTool;
 }
 
 export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
@@ -36,15 +35,12 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   private userInput: string;
   private isLoading: boolean;
   private useStream: boolean = true;
-  private manualTools: boolean = false;
 
   // Services passed in through attributes
   private readonly chat: Chat;
-  private readonly tool: CallableTool;
 
   constructor({ attrs }: m.CVnode<ChatPageAttrs>) {
     this.chat = attrs.chat;
-    this.tool = attrs.tool;
 
     // Initialize state
     this.userInput = '';
@@ -56,8 +52,6 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   }
 
   async processResponse(response: GenerateContentResponse) {
-    console.log(response);
-
     let toolCalls: FunctionCall[] = [];
 
     const candidateParts = response.candidates?.[0]?.content?.parts
@@ -77,13 +71,6 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     }
     
     m.redraw(); // Manually trigger a redraw to show the next part
-
-    console.log(response.automaticFunctionCallingHistory);
-    console.log(toolCalls);
-
-    if (this.manualTools && toolCalls.length > 0) {
-      console.log("Should call tools here?", this.tool);
-    }
   }
 
   // Use async/await for cleaner asynchronous logic
@@ -115,8 +102,6 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
 
         this.processResponse(response);
       }
-
-      // console.log('finished responses');
 
       this.messages.push({ role: 'spacer', text: '' });
       m.redraw(); // Manually trigger a redraw to show the next part

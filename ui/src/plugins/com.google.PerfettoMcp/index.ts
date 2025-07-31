@@ -26,6 +26,7 @@ import { Setting } from 'src/public/settings';
 import { registerCommands } from './commands';
 import { ChatPage } from './chat_page';
 import m from 'mithril';
+import { registerUiTools } from './uitools';
 export default class PerfettoMcpPlugin implements PerfettoPlugin {
   static readonly id = 'com.google.PerfettoMcp';
 
@@ -50,7 +51,6 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       defaultValue: "",
       render: (setting) => {
         const handleFileSelect = (event: any) => {
-          console.log("handleFile")
           const input = event.target as HTMLInputElement;
           const file = input.files?.[0];
 
@@ -102,8 +102,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     });
 
     registerTraceTools(mcpServer, trace.engine);
-
-    console.log('Server started!');
+    registerUiTools(mcpServer, trace);
 
     const client = new Client({
       name: 'PerfettoMcpClient',
@@ -119,7 +118,6 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
     ]);
 
     var tool: CallableTool = mcpToTool(client)
-    console.log(tool);
 
     const ai = new GoogleGenAI({ apiKey: PerfettoMcpPlugin.tokenSetting.get() });
 
@@ -152,8 +150,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       render: () => {
         return m(ChatPage, {
           trace,
-          chat,
-          tool
+          chat
         });
       },
     });
