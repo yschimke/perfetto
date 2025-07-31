@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import m from 'mithril';
-import { Chat } from '@google/genai';
+import { CallableTool, Chat, FunctionCall, GenerateContentResponse } from '@google/genai';
 import { Trace } from '../../public/trace';
 import { TextInput } from '../../widgets/text_input';
 
@@ -26,7 +26,8 @@ interface ChatMessage {
 // Interface for the component's attributes/properties
 export interface ChatPageAttrs {
   readonly trace: Trace;
-  readonly chat: Chat,
+  readonly chat: Chat;
+  readonly tool: CallableTool;
 }
 
 export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
@@ -34,12 +35,16 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   private messages: ChatMessage[];
   private userInput: string;
   private isLoading: boolean;
+  private useStream: boolean = true;
+  private manualTools: boolean = false;
 
   // Services passed in through attributes
   private readonly chat: Chat;
+  private readonly tool: CallableTool;
 
   constructor({ attrs }: m.CVnode<ChatPageAttrs>) {
     this.chat = attrs.chat;
+    this.tool = attrs.tool;
 
     // Initialize state
     this.userInput = '';
@@ -48,6 +53,37 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
       role: 'ai',
       text: 'Hello! I am your friendly AI assistant. How can I help you today?'
     }];
+  }
+
+  async processResponse(response: GenerateContentResponse) {
+    console.log(response);
+
+    let toolCalls: FunctionCall[] = [];
+
+    const candidateParts = response.candidates?.[0]?.content?.parts
+    if (candidateParts !== undefined) {
+      candidateParts.forEach(text => {
+        if (text.thought) {
+          this.messages.push({ role: 'thought', text: text.text ?? 'unprintable' });
+        } else if (text.functionCall) {
+          toolCalls.push(text.functionCall);
+          this.messages.push({ role: 'toolcall', text: text.functionCall?.name ?? 'unprintable' });
+        }
+      });
+    }
+
+    if (response.text !== undefined) {
+      this.messages.push({ role: 'ai', text: response.text });
+    }
+    
+    m.redraw(); // Manually trigger a redraw to show the next part
+
+    console.log(response.automaticFunctionCallingHistory);
+    console.log(toolCalls);
+
+    if (this.manualTools && toolCalls.length > 0) {
+      console.log("Should call tools here?", this.tool);
+    }
   }
 
   // Use async/await for cleaner asynchronous logic
@@ -64,32 +100,26 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     m.redraw(); // Manually trigger a redraw to show the user's message and loading state
 
     try {
-      const responseStream = await this.chat.sendMessageStream({
-        message: trimmedInput
-      });
+      if (this.useStream) {
+        const responseStream = await this.chat.sendMessageStream({
+          message: trimmedInput
+        });
 
-      for await (const part of responseStream) {
-        if (part.automaticFunctionCallingHistory !== undefined) {
-            part.automaticFunctionCallingHistory.forEach(call => {
-              this.messages.push({ role: 'toolcall', text: call.parts?.[0]?.functionCall?.name ?? 'unprintable' });
-            });
+        for await (const part of responseStream) {
+          this.processResponse(part);
         }
+      } else {
+        const response = await this.chat.sendMessage({
+          message: trimmedInput
+        });
 
-        const texts = part.candidates?.[0]?.content?.parts
-        if (texts !== undefined) {
-          texts.forEach(text => {
-            if (text.thought) {
-              this.messages.push({ role: 'thought', text: text.text ?? 'unprintable' });
-            } else if (text.functionCall) {
-              this.messages.push({ role: 'toolcall', text: text.text ?? 'unprintable' });
-            } else {
-              this.messages.push({ role: 'ai', text: text.text ?? 'unprintable' });
-            }
-          });
-        }
+        this.processResponse(response);
       }
 
-      this.messages.push({ role: 'spacer', text: '--' });
+      // console.log('finished responses');
+
+      this.messages.push({ role: 'spacer', text: '' });
+      m.redraw(); // Manually trigger a redraw to show the next part
     } catch (error) {
       console.error('AI API call failed:', error);
       // --- State Update 3: Show error message in the UI ---
@@ -105,6 +135,10 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   view() {
     return m("section.chat-container",
       m(".conversation",
+        {
+          overflowX: 'hidden',
+          overflowY: 'auto',
+        },
         // Map through messages and apply a class based on the role for styling
         this.messages.map(msg => {
           let role = "other";
@@ -123,6 +157,9 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
               break;
             case "error":
               role = "Error:";
+              break;
+            case "spacer":
+              role = "";
               break;
           }
           return m(`.message-wrapper.${msg.role}`,
@@ -154,3 +191,4 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     );
   }
 }
+

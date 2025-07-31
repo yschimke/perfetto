@@ -19,7 +19,7 @@ import { PerfettoPlugin } from '../../public/plugin';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { FunctionCallingConfigMode, GoogleGenAI, mcpToTool } from '@google/genai';
+import { CallableTool, FunctionCallingConfigMode, GoogleGenAI, mcpToTool } from '@google/genai';
 import { registerTraceTools } from './tracetools';
 import { z } from 'zod';
 import { Setting } from 'src/public/settings';
@@ -118,7 +118,8 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
       mcpServer.server.connect(serverTransport),
     ]);
 
-    var tool = await mcpToTool(client).tool()
+    var tool: CallableTool = mcpToTool(client)
+    console.log(tool);
 
     const ai = new GoogleGenAI({ apiKey: PerfettoMcpPlugin.tokenSetting.get() });
 
@@ -137,6 +138,9 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
         thinkingConfig: {
           includeThoughts: true,
           thinkingBudget: -1,
+        },
+        automaticFunctionCalling: {
+          maximumRemoteCalls: 100,
         }
       }
     })
@@ -149,6 +153,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
         return m(ChatPage, {
           trace,
           chat,
+          tool
         });
       },
     });
