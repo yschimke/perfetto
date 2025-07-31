@@ -16,6 +16,7 @@ import m from 'mithril';
 import { Chat, FunctionCall, GenerateContentResponse } from '@google/genai';
 import { Trace } from '../../public/trace';
 import { TextInput } from '../../widgets/text_input';
+import markdownit from "markdown-it";
 
 // Interface for a single message in the chat display
 interface ChatMessage {
@@ -35,13 +36,12 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   private userInput: string;
   private isLoading: boolean;
   private useStream: boolean = true;
-
-  // Services passed in through attributes
   private readonly chat: Chat;
+  private md: markdownit;
 
   constructor({ attrs }: m.CVnode<ChatPageAttrs>) {
     this.chat = attrs.chat;
-
+    this.md = markdownit()
     // Initialize state
     this.userInput = '';
     this.isLoading = false;
@@ -167,7 +167,8 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
           }
           return m(`.message-wrapper.${msg.role}`,
             m('b.role-label', role),
-            m('span.message-text', m.trust(msg.text.replace(/\n/g, '<br>'))) // Use m.trust to render newlines
+            // TODO: Need to sanitize input
+            m('span.message-text', m.trust(this.md.render(msg.text))) // Use m.trust to render markdown html
           );
         })
       ),
