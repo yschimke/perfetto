@@ -48,7 +48,7 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     this.messages = [{
       role: 'ai',
       text: 'Hello! I am your friendly AI assistant. How can I help you today?'
-    }];
+    },];
   }
 
   async processResponse(response: GenerateContentResponse) {
@@ -56,21 +56,31 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
 
     const candidateParts = response.candidates?.[0]?.content?.parts
     if (candidateParts !== undefined) {
-      candidateParts.forEach(text => {
-        if (text.thought) {
-          this.messages.push({ role: 'thought', text: text.text ?? 'unprintable' });
-        } else if (text.functionCall) {
-          toolCalls.push(text.functionCall);
-          this.messages.push({ role: 'toolcall', text: text.functionCall?.name ?? 'unprintable' });
+      candidateParts.forEach(part => {
+        if (part.thought) {
+          this.messages.push({ role: 'thought', text: part.text ?? 'unprintable' });
+        } else if (part.functionCall) {
+          toolCalls.push(part.functionCall);
+          this.messages.push({ role: 'toolcall', text: part.functionCall?.name ?? 'unprintable' });
         }
       });
     }
 
     if (response.text !== undefined) {
-      this.messages.push({ role: 'ai', text: response.text });
+      this.updateAiResponse(response.text)
     }
-    
+
     m.redraw(); // Manually trigger a redraw to show the next part
+  }
+
+  updateAiResponse(text: string) {
+    var lastResponse = this.messages[this.messages.length - 1]
+    if (lastResponse.role == "ai") {
+      lastResponse.text += text
+      this.messages[this.messages.length - 1] = lastResponse
+    } else {
+      this.messages.push({ role: 'ai', text: text });
+    }
   }
 
   // Use async/await for cleaner asynchronous logic
@@ -118,30 +128,38 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
   }
 
   view() {
+    // We return a fragment (an array) containing the style and the chat container.
     return m("section.chat-container",
       m(".conversation",
         {
-          overflowX: 'hidden',
-          overflowY: 'auto',
+          // This onupdate hook automatically scrolls to the bottom
+          // whenever the messages are updated.
+          onupdate: (vnode: m.VnodeDOM) => {
+            if (vnode.dom) {
+              const element = vnode.dom as HTMLElement;
+              element.scrollTop = element.scrollHeight;
+            }
+          }
         },
         // Map through messages and apply a class based on the role for styling
         this.messages.map(msg => {
+          if (!msg.text && msg.role !== 'spacer') return null; // Don't render empty messages
           let role = "other";
           switch (msg.role) {
             case "ai":
-              role = "AI:";
+              role = "AI";
+              break;
+            case "user":
+              role = "You";
               break;
             case "error":
-              role = "Error:";
+              role = "Error";
               break;
             case "toolcall":
-              role = "Tool:";
+              role = "Tool";
               break;
             case "thought":
-              role = "Thought:";
-              break;
-            case "error":
-              role = "Error:";
+              role = "Thought";
               break;
             case "spacer":
               role = "";
@@ -149,18 +167,16 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
           }
           return m(`.message-wrapper.${msg.role}`,
             m('b.role-label', role),
-            m('span.message-text', msg.text)
+            m('span.message-text', m.trust(msg.text.replace(/\n/g, '<br>'))) // Use m.trust to render newlines
           );
         })
       ),
       m("footer.chat-input-area",
         m(TextInput, {
           value: this.userInput,
-          // Use oninput for real-time updates to the userInput state
           oninput: (e: Event) => {
             this.userInput = (e.target as HTMLTextAreaElement).value;
           },
-          // Allow sending with the Enter key
           onkeydown: (e: KeyboardEvent) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -173,7 +189,6 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
         // Disable the button while loading to prevent multiple submissions
         m("button", { onclick: this.sendMessage, disabled: this.isLoading }, "Send")
       )
-    );
+    )
   }
 }
-
