@@ -75,7 +75,11 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
         this.messages.push({ role: 'ai', text: responseText });
       } else {
         // Handle cases where the response might be empty
-        this.messages.push({ role: 'error', text: 'Received an empty response from the AI.' });
+        this.messages.push({ role: 'error', text: 'Received an empty text response from the AI.' });
+        var functionCalls = response.functionCalls
+        if (functionCalls !== undefined && functionCalls.length != 0) {
+          this.messages.push({ role: 'error', text: 'The response contains function calls which are unsupported.' });
+        }
       }
 
     } catch (error) {
