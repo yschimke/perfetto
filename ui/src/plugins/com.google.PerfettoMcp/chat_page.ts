@@ -19,7 +19,7 @@ import { TextInput } from '../../widgets/text_input';
 
 // Interface for a single message in the chat display
 interface ChatMessage {
-  role: 'ai' | 'user' | 'error';
+  role: 'ai' | 'user' | 'error' | 'thought' | 'toolcall' | 'spacer';
   text: string;
 }
 
@@ -64,31 +64,36 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
     m.redraw(); // Manually trigger a redraw to show the user's message and loading state
 
     try {
-      const response = await this.chat.sendMessage({
+      const responseStream = await this.chat.sendMessageStream({
         message: trimmedInput
       });
 
-      const responseText = response.text;
-
-      if (responseText) {
-        // --- State Update 2: Show AI's response ---
-        this.messages.push({ role: 'ai', text: responseText });
-        if (functionCalls !== undefined && functionCalls.length != 0) {
-          this.messages.push({ role: 'error', text: 'The response contains function calls which are unsupported.' });
+      for await (const part of responseStream) {
+        if (part.automaticFunctionCallingHistory !== undefined) {
+            part.automaticFunctionCallingHistory.forEach(call => {
+              this.messages.push({ role: 'toolcall', text: call.parts?.[0]?.functionCall?.name ?? 'unprintable' });
+            });
         }
-      } else {
-        // Handle cases where the response might be empty
-        this.messages.push({ role: 'error', text: 'Received an empty text response from the AI.' });
-        var functionCalls = response.functionCalls
-        if (functionCalls !== undefined && functionCalls.length != 0) {
-          this.messages.push({ role: 'error', text: 'The response contains function calls which are unsupported.' });
+
+        const texts = part.candidates?.[0]?.content?.parts
+        if (texts !== undefined) {
+          texts.forEach(text => {
+            if (text.thought) {
+              this.messages.push({ role: 'thought', text: text.text ?? 'unprintable' });
+            } else if (text.functionCall) {
+              this.messages.push({ role: 'toolcall', text: text.text ?? 'unprintable' });
+            } else {
+              this.messages.push({ role: 'ai', text: text.text ?? 'unprintable' });
+            }
+          });
         }
       }
 
+      this.messages.push({ role: 'spacer', text: '--' });
     } catch (error) {
       console.error('AI API call failed:', error);
       // --- State Update 3: Show error message in the UI ---
-      this.messages.push({ role: 'error', text: 'Sorry, something went wrong. Please try again.' });
+      this.messages.push({ role: 'error', text: 'Sorry, something went wrong. ' + error });
     } finally {
       // --- Final State Update: Always stop loading ---
       // This is crucial to ensure the user can send another message even if an error occurred.
@@ -102,8 +107,26 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
       m(".conversation",
         // Map through messages and apply a class based on the role for styling
         this.messages.map(msg => {
+          let role = "other";
+          switch (msg.role) {
+            case "ai":
+              role = "AI:";
+              break;
+            case "error":
+              role = "Error:";
+              break;
+            case "toolcall":
+              role = "Tool:";
+              break;
+            case "thought":
+              role = "Thought:";
+              break;
+            case "error":
+              role = "Error:";
+              break;
+          }
           return m(`.message-wrapper.${msg.role}`,
-            m('b.role-label', msg.role === 'ai' ? 'AI:' : msg.role === 'error' ? 'Error:' : 'You:'),
+            m('b.role-label', role),
             m('span.message-text', msg.text)
           );
         })

@@ -19,7 +19,7 @@ import { PerfettoPlugin } from '../../public/plugin';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { GoogleGenAI, createUserContent, mcpToTool } from '@google/genai';
+import { FunctionCallingConfigMode, GoogleGenAI, mcpToTool } from '@google/genai';
 import { registerTraceTools } from './tracetools';
 import { z } from 'zod';
 import { Setting } from 'src/public/settings';
@@ -81,7 +81,7 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
           [
             m('input', {
               type: 'file',
-              accept: '.txt',
+              accept: ['.txt', '.md'],
               style: 'margin-top: 10px; display: block;',
               onchange: handleFileSelect,
             }),
@@ -122,22 +122,22 @@ export default class PerfettoMcpPlugin implements PerfettoPlugin {
 
     const ai = new GoogleGenAI({ apiKey: PerfettoMcpPlugin.tokenSetting.get() });
 
-    var model = 'gemini-2.5-pro-preview-05-06';
-
-    const cache = await ai.caches.create({
-      model: model,
-      config: {
-        contents: createUserContent(PerfettoMcpPlugin.promptSetting.get()),
-        systemInstruction: "You are an expert in analyzing perfetto traces",
-        tools: [tool],
-      }
-    })
-    console.log("Cache created:", cache);
+    var model = 'gemini-2.5-pro';
 
     var chat = await ai.chats.create({
       model: model,
       config: {
-        cachedContent: cache.name,
+        systemInstruction: "You are an expert in analyzing perfetto traces. \n\n" + PerfettoMcpPlugin.promptSetting.get(),
+        tools: [tool],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: FunctionCallingConfigMode.AUTO,
+          },
+        },
+        thinkingConfig: {
+          includeThoughts: true,
+          thinkingBudget: -1,
+        }
       }
     })
 
