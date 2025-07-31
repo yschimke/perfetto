@@ -37,7 +37,12 @@
 }
 
 /* Making the text input component take up most of the space */
-.chat-input-area .text-input {
+.chat-input-area .pf-text-input {
+    flex-grow: 1;
+    margin-right: 0.5rem;
+}
+
+.chat-input-area .pf-text-input__input {
     flex-grow: 1;
     margin-right: 0.5rem;
 }

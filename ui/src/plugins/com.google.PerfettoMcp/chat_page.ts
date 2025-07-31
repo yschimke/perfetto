@@ -184,7 +184,7 @@ export class ChatPage implements m.ClassComponent<ChatPageAttrs> {
               this.sendMessage();
             }
           },
-          placeholder: this.isLoading ? 'Waiting for response...' : 'Type your message...',
+          placeholder: this.isLoading ? 'Waiting for response...' : 'Ask me about your trace...',
           disabled: this.isLoading,
         }),
         // Disable the button while loading to prevent multiple submissions
