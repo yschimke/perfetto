@@ -24,6 +24,7 @@ export const defaultPlugins = [
   'com.android.GpuWorkPeriod',
   'com.google.PixelCpmTrace',
   'com.google.PixelMemory',
+  'com.google.PerfettoMcp',
   'dev.perfetto.AndroidClientServer',
   'dev.perfetto.AndroidCujs',
   'dev.perfetto.AndroidDmabuf',
